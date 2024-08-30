@@ -7,7 +7,7 @@
    Копия лицензии: https://opensource.org/licenses/MIT
    Copyright (c) 2024 Otto
    Автор: Otto
-   Версия: 26.08.24
+   Версия: 30.08.24
    GitHub страница:  https://github.com/Otto17/Utilities_for_cleaning
    GitFlic страница: https://gitflic.ru/project/otto/utilities_for_cleaning
    г. Омск 2024
@@ -18,6 +18,7 @@ using System;                           // Библиотека предоста
 using System.IO;                        // Библиотека отвечает за ввод и вывод данных, включая чтение и запись файлов
 using System.Threading.Tasks;           // Библиотека для работы с асинхронным программированием и параллельными задачами
 using System.Runtime.InteropServices;   // Библиотека позволяют управлять взаимодействием с неуправляемым кодом, таким как вызовы функций WinAPI из DLL
+using System.Diagnostics;               // Библиотека предоставляет классы, которые позволяют производить диагностику и логирование информации о работе программы
 
 
 namespace load_mfu
@@ -48,55 +49,95 @@ namespace load_mfu
             //Целевая папка (куда копировать)
             string targetDir = @"E:\ControlCenter\МФУ";
 
-            //Счетчик скопированных файлов
-            int copiedFilesCount = 0;
+            int copiedFilesCount = 0;    // Счетчик скопированных файлов
+            int skippedFilesCount = 0;   // Счетчик пропущенных файлов
+
 
             try
             {
                 //Получаем список всех файлов в исходной папке
                 string[] files = Directory.GetFiles(sourceDir);
 
+                Console.WriteLine("");
+                Console.WriteLine($"Восстанавливаем \"МФУ\"...");
+
                 //Копируем файлы параллельно
                 Parallel.ForEach(files, (currentFile) =>
                 {
-                    string fileName = Path.GetFileName(currentFile);
-                    string destFile = Path.Combine(targetDir, fileName);
-
-                    //Если файл существует в целевой папке, удаляем его для замены
-                    if (File.Exists(destFile))
+                    try
                     {
-                        File.Delete(destFile);
+                        string fileName = Path.GetFileName(currentFile);
+                        string destFile = Path.Combine(targetDir, fileName);
+
+                        //Если файл существует в целевой папке, пропускаем его
+                        if (File.Exists(destFile))
+                        {
+                            //Увеличиваем счетчик пропущенных файлов
+                            System.Threading.Interlocked.Increment(ref skippedFilesCount);
+                            // Console.WriteLine($"Файл пропущен (уже существует): {fileName}");
+                            return;
+                        }
+
+                        //Копируем файл в целевую папку
+                        File.Copy(currentFile, destFile);
+                        // Console.WriteLine($"Скопирован: {fileName} -> {Path.GetFileName(destFile)}");
+
+                        //Увеличиваем счетчик скопированных файлов
+                        System.Threading.Interlocked.Increment(ref copiedFilesCount);
                     }
-
-                    //Копируем файл в целевую папку
-                    File.Copy(currentFile, destFile);
-                    Console.WriteLine($"Скопирован: {fileName} -> {Path.GetFileName(destFile)}");
-
-                    //Увеличиваем счетчик скопированных файлов
-                    System.Threading.Interlocked.Increment(ref copiedFilesCount);
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка при копировании файла {currentFile}: {ex.Message}");
+                    }
                 });
 
                 //Выводим количество скопированных файлов через один абзац
                 Console.WriteLine("");
-                Console.WriteLine($"Всего скопировано файлов: {copiedFilesCount}");
+                Console.WriteLine($"Скопировано файлов: {copiedFilesCount}");
+                Console.WriteLine($"Пропущено файлов: {skippedFilesCount}");
+                Console.WriteLine("");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Произошла ошибка: {ex.Message}");
             }
 
-            //Пауза для отображения результатов
-            //Условие для обработки интерактивного ввода
+
+            //Условие для обработки интерактивного ввода - из Telnet'а
             if (Console.IsInputRedirected)
             {
                 Console.WriteLine("Нажмите Enter для завершения...");
                 Console.ReadLine();
 
-                //Закрытие Telnet сессии после нажатия "Enter"
+                //Попытка закрытия Telnet стандартным способом
                 var handle = GetConsoleWindow();
-                PostMessage(handle, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+
+                if (!PostMessage(handle, WM_CLOSE, IntPtr.Zero, IntPtr.Zero))
+                {
+                    //Если не удалось закрыть окно через "PostMessage", пробуем убить процесс "cmd"
+                    try
+                    {
+                        var cmdProcesses = Process.GetProcessesByName("cmd");   // Создаём массим процессов с именем "cmd"
+
+                        //Выполняем итерацию по каждому процессу из массива "cmdProcesses"
+                        foreach (var process in cmdProcesses)
+                        {
+                            //Если ID сессии текущего процесса совпадает с ID сессии обрабатываемого процесса "cmd", и если процесс "cmd" не является текущим процессом
+                            if (process.SessionId == Process.GetCurrentProcess().SessionId && process.Id != Process.GetCurrentProcess().Id)
+                            {
+                                process.Kill(); // Убиваем процесс
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Не удалось завершить процесс cmd: {ex.Message}");
+                    }
+                }
+
+
             }
-            else
+            else //Условие для обработки интерактивного ввода - из оболочки
             {
                 Console.WriteLine("Нажмите любую клавишу для завершения...");
                 Console.ReadKey();
