@@ -5,12 +5,12 @@
 
    Данная программа является свободным программным обеспечением, распространяющимся по лицензии MIT.
    Копия лицензии: https://opensource.org/licenses/MIT
-   Copyright (c) 2024 Otto
+   Copyright (c) 2025 Otto
    Автор: Otto
-   Версия: 19.08.24
+   Версия: 14.02.25
    GitHub страница:  https://github.com/Otto17/Utilities_for_cleaning
    GitFlic страница: https://gitflic.ru/project/otto/utilities_for_cleaning
-   г. Омск 2024
+   г. Омск 2025
 */
 
 

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ClearRecycleBin")]
-[assembly: AssemblyCopyright("Copyright ©  2024 Otto")]
+[assembly: AssemblyCopyright("Copyright ©  2025 Otto")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -29,5 +29,5 @@ using System.Runtime.InteropServices;
 //      Номер сборки
 //      Номер редакции
 //
-[assembly: AssemblyVersion("19.08.24")]
-[assembly: AssemblyFileVersion("19.08.24")]
+[assembly: AssemblyVersion("14.02.25")]
+[assembly: AssemblyFileVersion("14.02.25")]

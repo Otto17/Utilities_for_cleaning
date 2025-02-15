@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("TrimFiles")]
-[assembly: AssemblyCopyright("Copyright ©  2024 Otto")]
+[assembly: AssemblyCopyright("Copyright ©  2025 Otto")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // Можно задать все значения или принять номера сборки и редакции по умолчанию 
 // используя "*", как показано ниже:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("18.08.24")]
-[assembly: AssemblyFileVersion("18.08.24.0")]
+[assembly: AssemblyVersion("14.02.25")]
+[assembly: AssemblyFileVersion("14.02.25")]

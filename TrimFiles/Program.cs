@@ -5,26 +5,25 @@
 
    Данная программа является свободным программным обеспечением, распространяющимся по лицензии MIT.
    Копия лицензии: https://opensource.org/licenses/MIT
-   Copyright (c) 2024 Otto
+   Copyright (c) 2025 Otto
    Автор: Otto
-   Версия: 18.08.24
+   Версия: 14.02.25
    GitHub страница:  https://github.com/Otto17/Utilities_for_cleaning
    GitFlic страница: https://gitflic.ru/project/otto/utilities_for_cleaning
-   г. Омск 2024
+   г. Омск 2025
 */
 
 
-using System;                       // Библиотека предоставляет доступ к базовым классам и функциональности .NET Framework
-using System.Collections.Generic;   // Библиотека предоставляет возможности для работы с запросами к коллекциям данных
-using System.IO;                    // Библиотека отвечает за ввод и вывод данных, включая чтение и запись файлов
-using System.Linq;                  // Библиотека позволяет хранить и обрабатывать наборы данных с использованием обобщений, обеспечивая типобезопасность и эффективность
-
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace TrimFiles
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             //Настройки
 
@@ -96,20 +95,19 @@ namespace TrimFiles
                 }
 
                 //Обработка файлов в текущей директории
-                var files = Directory.EnumerateFiles(currentDir)
-                    .Where(file => fileExtensions.Contains(Path.GetExtension(file).ToLower()));
-
-                foreach (var file in files)
+                foreach (var file in Directory.EnumerateFiles(currentDir).Where(file => fileExtensions.Contains(Path.GetExtension(file).ToLower())))
                 {
                     try
                     {
-                        var destFile = Path.Combine(destinationPath, Path.GetFileName(file));   // Формируем полный путь до файла
+                        string fileName = Path.GetFileName(file);
+                        string truncatedFileName = TruncateFileName(fileName, 90); // Обрезаем имя файла до 90 символов
+                        var destFile = Path.Combine(destinationPath, truncatedFileName);   // Формируем полный путь до файла
 
                         //Если файл с таким именем уже существует
                         if (File.Exists(destFile))
                         {
                             //Генерируем порядковый номер к концу имени
-                            destFile = GetUniqueFileName(destinationPath, Path.GetFileNameWithoutExtension(file), Path.GetExtension(file));
+                            destFile = GetUniqueFileName(destinationPath, Path.GetFileNameWithoutExtension(truncatedFileName), Path.GetExtension(truncatedFileName));
                         }
 
                         //Копирование файла из текущей директории в целевую с перезаписью, а затем удаление исходного файла
@@ -143,21 +141,68 @@ namespace TrimFiles
             }
         }
 
+        //Метод для усечения длинного имени файла
+        //Принимает 2 аргумента: (fileName) имя файла и (maxLength) максимальная длина файла в символах
+        private static string TruncateFileName(string fileName, int maxLength)
+        {
+            if (fileName.Length <= maxLength)
+                return fileName;
+
+            string extension = Path.GetExtension(fileName);
+            string nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+
+            // Обрезаем имя файла до (maxLength - длина расширения) символов
+            int truncatedLength = maxLength - extension.Length;
+            if (truncatedLength <= 0)
+                throw new ArgumentException("Максимальная длина слишком мала для сохранения расширения файла.");
+
+            return nameWithoutExtension.Substring(0, truncatedLength) + extension;
+        }
+
         //Метод для получения уникального имени файла
         //Принимает 3 аргумента: (destinationPath) путь, куда будет сохранён файл, (baseFileName) базовое имя файла и (extension) расширение файла
         static string GetUniqueFileName(string destinationPath, string baseFileName, string extension)
         {
-            string newFileName = baseFileName + extension;  // Это имя файла, которое будет проверяться на уникальность
-            int counter = 1;                                // Счётчик для создания уникального имени файла, если такое имя уже существует
+            // Обрезаем базовое имя, чтобы после добавления GUID длина не превышала 90
+            int maxBaseLength = 90 - 11 - extension.Length; // 1 для '_' + 10 для GUID
+            if (maxBaseLength < 0) maxBaseLength = 0;
 
-            //Цикл проверки существования файла
-            while (File.Exists(Path.Combine(destinationPath, newFileName)))
+            if (baseFileName.Length > maxBaseLength)
+                baseFileName = baseFileName.Substring(0, maxBaseLength);
+
+            string baseNameWithoutSuffix = baseFileName;
+            int lastUnderscoreIndex = baseFileName.LastIndexOf('_');
+
+            if (lastUnderscoreIndex > 0)
             {
-                newFileName = $"{baseFileName}{counter}{extension}";    // Создание нового имени файла
-                counter++;                                              // Инкрементируем счётчик
+                string suffix = baseFileName.Substring(lastUnderscoreIndex + 1);
+                if (IsValidGuidSuffix(suffix))
+                    baseNameWithoutSuffix = baseFileName.Substring(0, lastUnderscoreIndex);
             }
 
-            return Path.Combine(destinationPath, newFileName);  // Возвращаем уникальное имя файла по полному пути
+            string guidSuffix;
+            string newFileName;
+            do
+            {
+                guidSuffix = Guid.NewGuid().ToString("N").Substring(0, 10);
+                newFileName = $"{baseNameWithoutSuffix}_{guidSuffix}{extension}";
+            } while (File.Exists(Path.Combine(destinationPath, newFileName)));
+
+            return Path.Combine(destinationPath, newFileName);
+        }
+
+        //Метод для проверки валидции GUID
+        private static bool IsValidGuidSuffix(string suffix)
+        {
+            if (suffix.Length != 10)
+                return false;
+
+            foreach (char c in suffix)
+            {
+                if (!Uri.IsHexDigit(c))
+                    return false;
+            }
+            return true;
         }
     }
 }
