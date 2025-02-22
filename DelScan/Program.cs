@@ -7,7 +7,7 @@
    Копия лицензии: https://opensource.org/licenses/MIT
    Copyright (c) 2025 Otto
    Автор: Otto
-   Версия: 14.02.25
+   Версия: 22.02.25
    GitHub страница:  https://github.com/Otto17/Utilities_for_cleaning
    GitFlic страница: https://gitflic.ru/project/otto/utilities_for_cleaning
    г. Омск 2025
@@ -90,22 +90,37 @@ namespace DelScan
                     {
                         try
                         {
-                            // Обрезаем имя файла до 90 символов
-                            string truncatedFileName = TruncateFileName(Path.GetFileName(file), 90);
+                            // Удаляем файлы с префиксом "Rsd=" из конкретных папок
+                            string fileName = Path.GetFileName(file);
 
-                            // Формируем путь к новому файлу
-                            var destFile = Path.Combine(destinationPath, truncatedFileName);
-
-                            //Если файл с таким именем уже есть в целевой папке, формируем новое уникальное имя
-                            if (File.Exists(destFile))
+                            // Проверка префикса "Rsd=" только для папок "E:\ControlCenter\МФУ" и "E:\Загрузки"
+                            if ((path == @"E:\ControlCenter\МФУ" || path == @"E:\Загрузки") && fileName.StartsWith("Rsd="))
                             {
-                                destFile = GetUniqueFileName(destinationPath, Path.GetFileNameWithoutExtension(truncatedFileName), Path.GetExtension(truncatedFileName));
+                                // Удаляем файлы с префиксом "Rsd="
+                                ResetFileAttributes(file);
+                                File.Delete(file);
+                                Console.WriteLine($"Файл удалён: {file}");
                             }
+                            else
+                            {
+                                // Переносим файлы (без префикса "Rsd=" или из других папок)
+                                // Обрезаем имя файла до 90 символов
+                                string truncatedFileName = TruncateFileName(Path.GetFileName(file), 90);
 
-                            ResetFileAttributes(file);  //Сбрасываем атрибуты файла
-                            File.Move(file, destFile);  // Перемещаем файл
+                                // Формируем путь к новому файлу
+                                var destFile = Path.Combine(destinationPath, truncatedFileName);
 
-                            Console.WriteLine($"Файл перемещён: {file} -> {destFile}");
+                                //Если файл с таким именем уже есть в целевой папке, формируем новое уникальное имя
+                                if (File.Exists(destFile))
+                                {
+                                    destFile = GetUniqueFileName(destinationPath, Path.GetFileNameWithoutExtension(truncatedFileName), Path.GetExtension(truncatedFileName));
+                                }
+
+                                ResetFileAttributes(file);  //Сбрасываем атрибуты файла
+                                File.Move(file, destFile);  // Перемещаем файл
+
+                                Console.WriteLine($"Файл перемещён: {file} -> {destFile}");
+                            }
                         }
                         catch (Exception ex)
                         {

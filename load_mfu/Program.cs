@@ -7,7 +7,7 @@
    Копия лицензии: https://opensource.org/licenses/MIT
    Copyright (c) 2025 Otto
    Автор: Otto
-   Версия: 14.02.25
+   Версия: 22.02.25
    GitHub страница:  https://github.com/Otto17/Utilities_for_cleaning
    GitFlic страница: https://gitflic.ru/project/otto/utilities_for_cleaning
    г. Омск 2025
@@ -27,19 +27,24 @@ namespace load_mfu
         //Импортируем функции из библиотек "kernel32.dll" и "user32.dll"
         [DllImport("kernel32.dll")]
         static extern IntPtr GetConsoleWindow();    // Эта функция возвращает дескриптор окна консоли текущего процесса. Дескриптор используется для взаимодействия с оконными функциями
+        
         [DllImport("user32.dll")]
         static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);    // Эта функция отправляет сообщение в оконную процедуру. Используем для отправки сообщения о закрытии окна консоли
+        
         const uint WM_CLOSE = 0x0010;   // Системное сообщение Windows, указывающее на запрос закрытия окна
-        static void Main(string[] args)
+
+        static void Main()
         {
             //Изменение кодировки консоли на "Windows-1251" для корректного отображения через Telnet
             Console.OutputEncoding = System.Text.Encoding.GetEncoding(1251);
             Console.InputEncoding = System.Text.Encoding.GetEncoding(1251);
+
             //Настройки
             //Исходная папка (откуда копировать)
-            string sourceDir = @"E:\$RECYCLER.BIN\Загрузки";
+            string sourceDir = @"E:\$RECYCLER.BIN\МФУ";
+
             //Целевая папка (куда копировать)
-            string targetDir = @"E:\ControlCenter\Загрузки";
+            string targetDir = @"E:\ControlCenter\МФУ";
             int copiedFilesCount = 0;    // Счетчик скопированных файлов
             int skippedFilesCount = 0;   // Счетчик пропущенных файлов
             try
@@ -48,13 +53,21 @@ namespace load_mfu
                 string[] files = Directory.GetFiles(sourceDir);
                 Console.WriteLine("");
                 Console.WriteLine($"Восстанавливаем \"МФУ\"...");
+
                 //Копируем файлы параллельно
                 Parallel.ForEach(files, (currentFile) =>
                 {
                     try
                     {
+                        // Извлекаем имя файла из полного пути
                         string fileName = Path.GetFileName(currentFile);
-                        string destFile = Path.Combine(targetDir, fileName);
+
+                        // Формируем новое имя файла с префиксом "Rsd="
+                        string markedFileName = "Rsd=" + fileName;
+
+                        // Формируем полный путь к целевому файлу
+                        string destFile = Path.Combine(targetDir, markedFileName);
+
                         //Если файл существует в целевой папке, пропускаем его
                         if (File.Exists(destFile))
                         {
@@ -66,6 +79,7 @@ namespace load_mfu
                         //Копируем файл в целевую папку
                         File.Copy(currentFile, destFile);
                         // Console.WriteLine($"Скопирован: {fileName} -> {Path.GetFileName(destFile)}");
+
                         //Увеличиваем счетчик скопированных файлов
                         System.Threading.Interlocked.Increment(ref copiedFilesCount);
                     }
@@ -84,11 +98,13 @@ namespace load_mfu
             {
                 Console.WriteLine($"Произошла ошибка: {ex.Message}");
             }
-            //Условие для обработки интерактивного ввода - из Telnet'а
-            if (Console.IsInputRedirected)
+
+            // Завершение программы в зависимости от способа запуска
+            if (Console.IsInputRedirected)  // Для Telnet
             {
                 Console.WriteLine("Нажмите Enter для завершения...");
                 Console.ReadLine();
+
                 //Попытка закрытия Telnet стандартным способом
                 var handle = GetConsoleWindow();
                 if (!PostMessage(handle, WM_CLOSE, IntPtr.Zero, IntPtr.Zero))
@@ -97,6 +113,7 @@ namespace load_mfu
                     try
                     {
                         var cmdProcesses = Process.GetProcessesByName("cmd");   // Создаём массим процессов с именем "cmd"
+
                         //Выполняем итерацию по каждому процессу из массива "cmdProcesses"
                         foreach (var process in cmdProcesses)
                         {
@@ -113,7 +130,7 @@ namespace load_mfu
                     }
                 }
             }
-            else //Условие для обработки интерактивного ввода - из оболочки
+            else // Для запуска из оболочки
             {
                 Console.WriteLine("Нажмите любую клавишу для завершения...");
                 Console.ReadKey();
